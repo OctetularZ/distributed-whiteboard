@@ -4,39 +4,36 @@ const socketio = require("socket.io");
 const redis = require("redis");
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, "0.0.0.0", () => {
-  console.log("server running on " + PORT);
-});
 const REDIS_HOST = process.env.REDIS_HOST || "127.0.0.1";
 
 const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
 
-// serve whiteboard UI
+// serve static UI
 app.use(express.static(__dirname + "/public"));
 
-// Redis clients
+// Redis
 const pub = redis.createClient({ host: REDIS_HOST });
 const sub = redis.createClient({ host: REDIS_HOST });
 
-// Subscribe for events from other VMs
 sub.subscribe("wb_events");
 
+// receive from other VMs → broadcast
 sub.on("message", (channel, message) => {
-    const data = JSON.parse(message);
-    io.emit("draw", data);       // broadcast to connected clients
+  const data = JSON.parse(message);
+  io.emit("draw", data);
 });
 
-// Handle local clients
+// local drawing event → send to redis + broadcast locally
 io.on("connection", (socket) => {
-    socket.on("draw", (data) => {
-        // broadcast locally
-        socket.broadcast.emit("draw", data);
-
-        // send to Redis for cross-VM sync
-        pub.publish("wb_events", JSON.stringify(data));
-    });
+  socket.on("draw", (data) => {
+    socket.broadcast.emit("draw", data);
+    pub.publish("wb_events", JSON.stringify(data));
+  });
 });
 
-server.listen(PORT, () => console.log("server running on " + PORT));
+// IMPORTANT: listen on 0.0.0.0
+server.listen(PORT, "0.0.0.0", () => {
+  console.log("Server running on port " + PORT);
+});
