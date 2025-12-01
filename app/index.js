@@ -4,6 +4,9 @@ const socketio = require("socket.io");
 const redis = require("redis");
 
 const PORT = process.env.PORT || 3000;
+server.listen(PORT, "0.0.0.0", () => {
+  console.log("server running on " + PORT);
+});
 const REDIS_HOST = process.env.REDIS_HOST || "127.0.0.1";
 
 const app = express();
