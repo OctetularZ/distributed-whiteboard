@@ -1,0 +1,20 @@
+{
+  "name": "distributed-whiteboard",
+  "version": "1.0.0",
+  "description": "A simple collaborative whiteboard using socket.io",
+  "main": "index.js",
+  "keywords": [
+    "socket.io",
+    "whiteboard"
+  ],
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.0",
+    "redis": "^3.1.2"
+  },
+  "scripts": {
+    "start": "node index"
+  },
+  "author": "Damien Arrachequesne",
+  "license": "MIT"
+}
