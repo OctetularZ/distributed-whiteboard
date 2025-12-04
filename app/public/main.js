@@ -1,8 +1,8 @@
 'use strict';
 
-(function() {
+var socket = io();
 
-  var socket = io();
+(function() {
   var canvas = document.getElementsByClassName('whiteboard')[0];
   var colors = document.getElementsByClassName('color');
   var context = canvas.getContext('2d');
