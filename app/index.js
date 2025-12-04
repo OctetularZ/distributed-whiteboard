@@ -10,30 +10,32 @@ const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
 
-// serve static UI
 app.use(express.static(__dirname + "/public"));
 
-// Redis
 const pub = redis.createClient({ host: REDIS_HOST });
 const sub = redis.createClient({ host: REDIS_HOST });
+const store = redis.createClient({ host: REDIS_HOST }); // <- persistence DB
 
 sub.subscribe("wb_events");
 
-// receive from other VMs → broadcast
-sub.on("message", (channel, message) => {
-  const data = JSON.parse(message);
-  io.emit("draw", data);
+// When another VM publishes → broadcast to active users
+sub.on("message", (channel, msg) => {
+    const data = JSON.parse(msg);
+    io.emit("draw", data);
 });
 
-// local drawing event → send to redis + broadcast locally
-io.on("connection", (socket) => {
-  socket.on("draw", (data) => {
-    socket.broadcast.emit("draw", data);
-    pub.publish("wb_events", JSON.stringify(data));
-  });
+// When new client joins → replay full history
+io.on("connection", async (socket) => {
+    console.log("Client connected → loading history");
+
+    const history = await store.lrange("history", 0, -1);
+    history.forEach(event => socket.emit("draw", JSON.parse(event)));
+
+    socket.on("draw", data => {
+        pub.publish("wb_events", JSON.stringify(data));       // sync to other nodes
+        store.rpush("history", JSON.stringify(data));         // save persistently
+        socket.broadcast.emit("draw", data);                  // show to local users
+    });
 });
 
-// IMPORTANT: listen on 0.0.0.0
-server.listen(PORT, "0.0.0.0", () => {
-  console.log("Server running on port " + PORT);
-});
+server.listen(PORT,"0.0.0.0",()=>console.log("Server on",PORT));
